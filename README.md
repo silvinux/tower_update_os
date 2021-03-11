@@ -2,6 +2,8 @@
 
 Playbook cannot be executed from tower or databases nodes, because it will be rebooted all servers if need it. I will reuse the tower's inventory.
 
+Adapted to tower version > 3.7.x 
+
 ## Howto run it. 
 
 * Playbook has been done with tags, just check the tasks you want to run first.
