@@ -1,0 +1,23 @@
+[tower]
+tower1.lab.example.com ansible_ssh_user=ansible
+tower2.lab.example.com ansible_ssh_user=ansible
+tower3.lab.example.com ansible_ssh_user=ansible
+
+[database]
+towerdb.lab.example.com ansible_ssh_user=ansible
+
+[all:vars]
+upgrade_ansible_with_tower=true
+ansible_ssh_password=pa$$w0rd
+ansible_become=true
+ansible_sudo=true
+ansible_become_pass=pa$$w0rd
+admin_password='pa$$w0rd'
+pg_host='towerdb.lab.example.com'
+pg_port='5432'
+pg_database='awx'
+pg_username='awx'
+pg_password='pa$$w0rd'
+rabbitmq_username=tower
+rabbitmq_password='pa$$w0rd'
+rabbitmq_cookie=cookiemonster

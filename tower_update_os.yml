@@ -1,0 +1,106 @@
+---
+- name: Update Tower SO
+  hosts: all
+  gather_facts: no
+  ### 
+  # ansible-playbook -i inventory tower_update_os.yml --tags gather_facts,stop_services,enable_repos,update_idm_packages,update_all_packages_but_tower,reboot
+  ### 
+  vars:
+    idm_update_packages:
+      - ipa-client
+      - python-magic
+      - python-sssdconfig
+      - python-firewall
+      - python-tdb
+    exclude_packages:
+      - postgresql*
+      - rh-postgresql*
+      - redis*
+      - ansible-tower*
+      - nginx*
+      - supervisor*
+      - memcached*
+      - rh-postgresql10*
+      - python*
+      - rh-python36*
+    repos_to_enable:
+      - rhel-7-server-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-server-rhscl-7-rpms
+  tasks:
+  - name: Test Connectivity
+    ping:
+    tags:
+      - ping
+  - name: Update Tower OS | Gather Services and Packages facts
+    block:
+    - name: Gathet service facts
+      service_facts:
+      tags:
+        - gather_facts
+
+    - name: Gather the package facts
+      package_facts:
+        manager: auto
+      tags:
+        - gather_facts
+
+  - name: Update Tower OS | Stop Tower and Database services 
+    block:
+    - name: Stop service ansible-tower.service
+      service:
+        name: ansible-tower.service
+        state: stopped
+      when: "'ansible-tower.service' in ansible_facts.services"
+      tags:
+        - stop_services
+
+    - name: Stop service postgresql
+      service:
+        name: rh-postgresql10-postgresql.service
+        state: stopped
+      when: "'rh-postgresql10-postgresql.service' in ansible_facts.services"
+      tags:
+        - stop_services
+
+  - name: Update Tower OS | Enable tower's repositories
+    rhsm_repository:
+      name: "{{ repos_to_enable }}"
+    tags:
+      - enable_repos
+
+  - name: Update Tower OS | Update IdM packages if required
+    yum:
+      name: "{{ idm_update_packages }}"
+      state: latest
+    when: "'ipa-client' in ansible_facts.packages"
+    tags:
+      - update_idm_packages
+
+  - name: Update Tower OS | Update System excluding Tower's packages
+    yum:
+      name: '*'
+      state: latest
+      exclude: '{{ exclude_packages }}'
+    tags:
+      - update_all_packages_but_tower
+
+  - name: Update Tower OS | Host Reboot | Detect if reboot is required
+    command: needs-restarting --reboothint
+    register: needs_restart_result
+    failed_when: needs_restart_result.rc > 1
+    changed_when: needs_restart_result.rc == 1
+    tags:
+      - reboot
+
+  - name: Update Tower OS | Host Reboot | Schedule Reboot
+    reboot:
+      pre_reboot_delay: 10
+      post_reboot_delay: 65
+      reboot_timeout: 1800
+      test_command: uptime
+    when:
+      - needs_restart_result is changed
+    tags:
+      - reboot
+...
